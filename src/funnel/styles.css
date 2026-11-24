@@ -1,0 +1,3009 @@
+/* Funis — tudo escopado em .fn-root / .fn-gallery (e nas classes .react-flow, que só existem aqui). */
+
+.fn-root,
+.fn-gallery {
+  --fn-bg: var(--background-primary, #f8fafc);
+  --fn-text: var(--text-normal, #1f2937);
+  --fn-muted: var(--text-muted, #6b7280);
+  --fn-faint: var(--text-faint, #9ca3af);
+  --fn-border: var(--background-modifier-border, #e5e7eb);
+  --fn-accent: var(--interactive-accent, #16a34a);
+  --fn-on-accent: var(--text-on-accent, #ffffff);
+  --fn-panel: var(--background-primary, #ffffff);
+  --fn-hover: var(--background-modifier-hover, rgba(0, 0, 0, 0.05));
+  --fn-card: #ffffff;
+  --fn-card-border: color-mix(in srgb, var(--fn-text) 12%, transparent);
+  --fn-sk: color-mix(in srgb, var(--fn-text) 11%, transparent);
+  --fn-dot: color-mix(in srgb, var(--fn-text) 16%, transparent);
+  --fn-edge: #7cb0f7;
+  --fn-yes-edge: #4ade80;
+  --fn-no-edge: #f87171;
+  --fn-ink: var(--text-normal, #1f2937);
+  --fn-shape-fill: color-mix(in srgb, var(--fn-text) 4%, var(--fn-card));
+  --fn-shape-stroke: color-mix(in srgb, var(--fn-text) 45%, transparent);
+  --fn-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 6px 18px rgba(15, 23, 42, 0.08);
+  --fn-shadow-lg: 0 10px 40px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08);
+  --fn-sel: var(--fn-accent);
+  --fn-font: var(--font-interface, ui-sans-serif, system-ui, sans-serif);
+
+  /* movimento (padrão Apple): desaceleração longa e suave; "spring" com leve
+	   assentamento; saída mais rápida que a entrada */
+  --fn-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --fn-ease-spring: cubic-bezier(0.32, 1.25, 0.5, 1);
+  --fn-ease-in: cubic-bezier(0.5, 0, 0.75, 0);
+  --fn-dur-fast: 140ms;
+  --fn-dur: 240ms;
+  --fn-dur-slow: 320ms;
+}
+
+.fn-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overflow: clip; /* foco em campo nunca rola o canvas */
+  background: var(--fn-bg);
+  color: var(--fn-text);
+  font-family: var(--fn-font);
+  font-size: 13px;
+  outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /* isola o canvas do resto do Obsidian: repinturas aqui dentro não invalidam a janela */
+  contain: strict;
+}
+
+.theme-dark .fn-root,
+.theme-dark .fn-gallery {
+  --fn-card: color-mix(in srgb, var(--fn-text) 7%, var(--background-primary, #1e1e1e));
+  --fn-card-border: color-mix(in srgb, var(--fn-text) 14%, transparent);
+  --fn-sk: color-mix(in srgb, var(--fn-text) 14%, transparent);
+  --fn-dot: color-mix(in srgb, var(--fn-text) 13%, transparent);
+  --fn-panel: color-mix(in srgb, var(--fn-text) 5%, var(--background-primary, #1e1e1e));
+  --fn-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
+  --fn-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --fn-edge: #5b9cf0;
+}
+
+/* a view do Obsidian tem padding; o canvas ocupa tudo */
+.workspace-leaf-content[data-type='funis-view'] .view-content {
+  padding: 0;
+  overflow: hidden;
+}
+
+.fn-root .react-flow {
+  background: transparent;
+  --xy-selection-background-color: color-mix(in srgb, var(--fn-accent) 10%, transparent);
+  --xy-selection-border: 1px solid color-mix(in srgb, var(--fn-accent) 70%, transparent);
+  --xy-connectionline-stroke-default: var(--fn-edge);
+  --xy-connectionline-stroke-width-default: 1.8;
+}
+
+/* pontos: camada maior que a tela, só deslocada com transform (ver DotsBackground) */
+.fn-dots {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(100% + 64px);
+  height: calc(100% + 64px);
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--fn-dot) 1px, transparent 1.2px);
+  z-index: -1;
+  will-change: transform;
+}
+
+/* a tela fica sempre numa camada da GPU: mover só desloca a imagem já pintada
+   (sem engasgo no 1º quadro). Depois de um zoom, motion.ts tira a camada por
+   2 quadros para o texto voltar nítido. */
+.fn-root .react-flow__viewport {
+  will-change: transform;
+}
+.fn-root.is-rerastering .react-flow__viewport {
+  will-change: auto;
+}
+/* nó sendo arrastado ganha camada própria */
+.fn-root .react-flow__node.dragging {
+  will-change: transform;
+}
+.fn-root.fn-tool-select .react-flow__pane {
+  cursor: default;
+}
+
+.fn-root.fn-tool-hand .react-flow__pane {
+  cursor: grab;
+}
+.fn-root.fn-tool-hand .react-flow__pane.dragging {
+  cursor: grabbing;
+}
+.fn-root .react-flow__pane.selection {
+  cursor: default;
+}
+
+.fn-root button {
+  font-family: inherit;
+}
+
+/* --------------------------------------------------------------- handles */
+
+.fn-root .react-flow__handle.fn-h {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--fn-card);
+  border: 1.6px solid var(--fn-accent);
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: all;
+  z-index: 2;
+}
+.fn-root .react-flow__node:hover .fn-h,
+.fn-root .react-flow__node.selected .fn-h,
+.fn-root .react-flow__handle.fn-h.connectingto,
+.fn-root .react-flow__handle.fn-h.connectingfrom,
+.fn-root .react-flow.is-connecting .fn-h {
+  opacity: 1;
+}
+.fn-root .react-flow__handle.fn-h:hover {
+  background: var(--fn-accent);
+  transform-origin: center;
+}
+.fn-root .react-flow__handle.connectingto {
+  background: var(--fn-accent);
+}
+
+/* --------------------------------------------------------------- arestas */
+
+.fn-root .fn-edge {
+  stroke-width: 1.7;
+  fill: none;
+}
+.fn-root .fn-edge.is-solid {
+  stroke-width: 2;
+}
+.fn-root .fn-edge.is-dashed,
+.fn-root .fn-edge.is-animated {
+  stroke-dasharray: 6 5;
+}
+.fn-root .fn-edge.is-animated {
+  animation: fn-dash 0.9s linear infinite;
+}
+.fn-root .fn-edge.is-selected {
+  stroke-width: 2.6;
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--fn-accent) 60%, transparent));
+}
+.fn-root .react-flow__edge:hover .fn-edge {
+  stroke-width: 2.4;
+}
+@keyframes fn-dash {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+/* linha enquanto liga: sólida, como o padrão das conexões */
+.fn-root .react-flow__connection-path {
+  stroke-width: 2;
+}
+.fn-edge-label {
+  position: absolute;
+  pointer-events: all;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fn-card);
+  color: var(--fn-text);
+  border: 1px solid var(--fn-card-border);
+  box-shadow: var(--fn-shadow);
+  white-space: nowrap;
+}
+.fn-edge-label.is-selected {
+  border-color: var(--fn-accent);
+  cursor: grab;
+  touch-action: none;
+}
+
+/* bolinha de curvatura (só na conexão selecionada): área de clique maior que o ponto */
+.fn-edge-bend {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  pointer-events: all;
+  cursor: grab;
+  touch-action: none;
+}
+.fn-edge-bend.is-bending,
+.fn-edge-label.is-bending {
+  cursor: grabbing;
+}
+.fn-edge-bend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--fn-card);
+  border: 2px solid var(--fn-accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  transition:
+    transform 0.18s var(--fn-ease-out),
+    background-color 0.18s;
+  animation: fn-bend-in 0.24s var(--fn-ease-spring) backwards;
+}
+.fn-edge-bend:hover .fn-edge-bend-dot,
+.fn-edge-bend.is-bending .fn-edge-bend-dot {
+  transform: scale(1.3);
+}
+.fn-edge-bend.is-bent .fn-edge-bend-dot {
+  background: var(--fn-accent);
+}
+@keyframes fn-bend-in {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+}
+.fn-edge-straighten {
+  margin-top: 8px;
+}
+
+/* --------------------------------------------------------------- seleção comum */
+
+.fn-root .react-flow__node {
+  font-family: var(--fn-font);
+}
+.fn-root .react-flow__node.selected > .fn-page,
+.fn-root .react-flow__node.selected > .fn-bump,
+.fn-root .react-flow__node.selected > .fn-note {
+  box-shadow:
+    0 0 0 2px var(--fn-sel),
+    var(--fn-shadow);
+}
+
+.fn-resize-line {
+  border-color: var(--fn-sel) !important;
+}
+.fn-root .react-flow__resize-control.handle.fn-resize-handle {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--fn-card);
+  border: 1.5px solid var(--fn-sel);
+}
+
+/* --------------------------------------------------------------- nó círculo */
+
+.fn-cnode {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  gap: 5px;
+}
+.fn-cnode-disc {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+  transition: box-shadow 0.12s;
+}
+.fn-cnode-disc.is-light {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.12),
+    0 2px 6px rgba(15, 23, 42, 0.14);
+}
+.fn-cnode.is-selected .fn-cnode-disc {
+  box-shadow:
+    0 0 0 3px var(--fn-bg),
+    0 0 0 5px var(--fn-sel);
+}
+.fn-cnode-label {
+  max-width: 120px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--fn-text);
+  text-wrap: balance;
+  word-break: break-word;
+  padding: 1px 4px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--fn-bg) 85%, transparent);
+}
+.fn-mono {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-family: var(--fn-font);
+}
+.fn-price-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #22c55e 16%, var(--fn-bg));
+  color: color-mix(in srgb, #16a34a 80%, var(--fn-text));
+  white-space: nowrap;
+}
+
+.fn-badges {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  display: flex;
+  gap: 3px;
+  z-index: 3;
+}
+.fn-cnode .fn-badges {
+  right: 22px;
+}
+.fn-root .fn-badge {
+  all: unset;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fn-card);
+  color: var(--fn-accent);
+  border: 1px solid var(--fn-card-border);
+  box-shadow: var(--fn-shadow);
+  cursor: pointer;
+}
+.fn-root .fn-badge:hover {
+  background: var(--fn-accent);
+  color: var(--fn-on-accent);
+}
+.fn-root .fn-badge.is-missing {
+  opacity: 0.55;
+}
+
+/* --------------------------------------------------------------- nó página */
+
+.fn-page {
+  position: relative;
+  width: 200px;
+  background: var(--fn-card);
+  border: 1px solid var(--fn-card-border);
+  border-radius: 14px;
+  box-shadow: var(--fn-shadow);
+}
+.fn-page-chrome {
+  display: flex;
+  gap: 5px;
+  padding: 9px 11px 8px;
+  border-bottom: 1px solid var(--fn-card-border);
+}
+.fn-page-chrome i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: block;
+}
+.fn-page-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+}
+.fn-page-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.35;
+  color: var(--fn-text);
+  text-wrap: balance;
+  word-break: break-word;
+}
+.fn-page-btn {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 6px;
+  border-radius: 7px;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  word-break: break-word;
+}
+.fn-page-price {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--fn-text);
+}
+.fn-page-price small,
+.fn-co-price small {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fn-muted);
+  margin-left: 2px;
+}
+.fn-page-foot {
+  width: 100%;
+  align-items: center;
+}
+
+.fn-art {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+.fn-lines {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.fn-sk {
+  border-radius: 999px;
+  background: var(--fn-sk);
+  flex: none;
+}
+.fn-tile {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0 2px;
+}
+.fn-tile.is-round {
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+}
+.fn-field {
+  width: 100%;
+  height: 18px;
+  box-sizing: border-box;
+  border-radius: 5px;
+  border: 1px solid var(--fn-card-border);
+  background: color-mix(in srgb, var(--fn-text) 3%, transparent);
+}
+.fn-field-pass {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  font-size: 8px;
+  color: var(--fn-faint);
+}
+
+.fn-player {
+  width: 100%;
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0f172a;
+}
+.fn-player-screen {
+  position: relative;
+  flex: 1;
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fn-player-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 8px;
+  font-weight: 800;
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+}
+.fn-player-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fn-player-bar {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 7px;
+  height: 3px;
+  border-radius: 2px;
+  background: #334155;
+}
+.fn-player-bar span {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 2px;
+}
+.fn-player-chat {
+  width: 46px;
+  border-left: 1px solid #1e293b;
+  padding: 18px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fn-player-chips {
+  width: 100%;
+  display: flex;
+  gap: 4px;
+  padding: 0 6px 6px;
+}
+.fn-player-chips span {
+  flex: 1;
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #e2e8f0;
+  text-align: center;
+  padding: 2px 0;
+  border-radius: 3px;
+}
+
+.fn-meet {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px 3px 18px;
+  box-sizing: border-box;
+  background: #0f172a;
+  border-radius: 8px;
+}
+.fn-meet-tile {
+  height: 32px;
+  background: #1e293b;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fn-meet-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+}
+.fn-meet-end {
+  width: 14px;
+  height: 7px;
+  border-radius: 4px;
+  background: #ef4444;
+}
+
+.fn-cal {
+  width: 100%;
+  border: 1px solid var(--fn-card-border);
+  border-radius: 8px;
+  padding: 7px;
+  box-sizing: border-box;
+}
+.fn-cal-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+.fn-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.fn-cal-grid span {
+  height: 10px;
+  border-radius: 3px;
+  background: var(--fn-sk);
+}
+
+.fn-progress {
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--fn-sk);
+}
+.fn-progress span {
+  display: block;
+  width: 62%;
+  height: 100%;
+  border-radius: 3px;
+}
+.fn-co-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.fn-co-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: var(--fn-sk);
+  flex: none;
+}
+.fn-co-price {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--fn-text);
+  white-space: nowrap;
+}
+.fn-paybadges {
+  display: flex;
+  gap: 3px;
+}
+.fn-paybadges span {
+  font-size: 6.5px;
+  font-weight: 800;
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid var(--fn-card-border);
+  color: var(--fn-muted);
+}
+
+.fn-radio {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  box-sizing: border-box;
+  border: 1px solid var(--fn-card-border);
+  border-radius: 6px;
+}
+.fn-radio > span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--fn-faint);
+  flex: none;
+  box-sizing: border-box;
+}
+.fn-stars {
+  display: flex;
+  gap: 3px;
+  padding: 6px 0 2px;
+}
+.fn-img {
+  width: 100%;
+  height: 56px;
+  border-radius: 7px;
+  background: var(--fn-sk);
+  color: var(--fn-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fn-post {
+  width: 100%;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+.fn-post > span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex: none;
+}
+.fn-post > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fn-courses {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.fn-courses span {
+  height: 34px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --------------------------------------------------------------- decisão */
+
+.fn-dnode {
+  position: relative;
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.fn-dnode-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  color: var(--fn-text);
+  text-wrap: balance;
+  padding: 1px 4px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--fn-bg) 85%, transparent);
+}
+.fn-dnode-disc {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1.6px dashed color-mix(in srgb, var(--fn-text) 35%, transparent);
+  background: var(--fn-card);
+  color: var(--fn-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fn-dnode.is-selected .fn-dnode-disc {
+  border-color: var(--fn-sel);
+  border-style: solid;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fn-sel) 25%, transparent);
+}
+.fn-root .react-flow__handle.fn-h-out {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid var(--fn-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  pointer-events: all;
+  cursor: crosshair;
+  right: -6px;
+  z-index: 3;
+}
+.fn-root .react-flow__handle.fn-h-out svg {
+  pointer-events: none;
+}
+.fn-root .react-flow__handle.fn-h-out.is-yes {
+  background: #22c55e;
+}
+.fn-root .react-flow__handle.fn-h-out.is-no {
+  background: #ef4444;
+}
+
+/* --------------------------------------------------------------- order bump */
+
+.fn-bump {
+  position: relative;
+  width: 190px;
+  box-sizing: border-box;
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.6px dashed var(--fn-bump);
+  background: color-mix(in srgb, var(--fn-bump) 9%, var(--fn-card));
+}
+.fn-bump-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  margin-top: 2px;
+}
+.fn-bump-kicker {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--fn-bump);
+}
+.fn-bump-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--fn-text);
+  word-break: break-word;
+}
+.fn-bump-price {
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 3px;
+  color: var(--fn-text);
+}
+
+/* --------------------------------------------------------------- nota adesiva */
+
+.fn-note {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border-radius: 4px 4px 14px 4px;
+  padding: 12px 14px;
+  color: #1f2937;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 8px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+.fn-note-text {
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+}
+.fn-note-text.is-empty {
+  color: rgba(31, 41, 55, 0.45);
+  font-style: italic;
+}
+.fn-note .fn-edit {
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.45;
+  height: 100% !important;
+}
+
+/* --------------------------------------------------------------- formas e texto */
+
+.fn-shape {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.fn-shape-svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.fn-shape.is-selected .fn-shape-svg {
+  filter: drop-shadow(0 0 2px color-mix(in srgb, var(--fn-sel) 70%, transparent));
+}
+.fn-shape-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--fn-text);
+}
+.fn-shape .fn-edit {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: auto;
+  max-height: 100%;
+  text-align: center;
+  font-weight: 600;
+}
+
+.fn-text {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 24px;
+}
+.fn-text-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.25;
+  color: var(--fn-text);
+  padding: 2px 4px;
+}
+.fn-text-body.is-empty {
+  color: var(--fn-faint);
+}
+.fn-text.is-selected .fn-text-body {
+  outline: 1px dashed color-mix(in srgb, var(--fn-sel) 60%, transparent);
+  outline-offset: 2px;
+}
+
+.fn-root textarea.fn-edit {
+  all: unset;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 1.4em;
+  padding: 2px 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  resize: none;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--fn-accent) 8%, transparent);
+  border-radius: 4px;
+  outline: 1.5px solid var(--fn-accent);
+  font: inherit;
+  color: inherit;
+}
+
+/* --------------------------------------------------------------- seção */
+
+/* miolo da seção deixa o clique passar (caixa de seleção lá dentro)… */
+.fn-root .react-flow__node-section {
+  pointer-events: none !important;
+}
+.fn-root .react-flow__node-section .fn-section-head,
+.fn-root .react-flow__node-section .react-flow__resize-control {
+  pointer-events: all;
+}
+/* …mas, selecionada (clique no vazio dela), arrasta por qualquer ponto */
+.fn-root .react-flow__node-section.selected {
+  pointer-events: all !important;
+  cursor: move;
+}
+.fn-root .react-flow__node-section.selected.dragging {
+  cursor: grabbing;
+}
+/* alças de redimensionar da seção: maiores e fáceis de pegar */
+.fn-root .react-flow__node-section .react-flow__resize-control.handle.fn-resize-handle {
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  border-width: 2px;
+}
+.fn-root .react-flow__node-section .react-flow__resize-control.line {
+  border-color: transparent !important;
+}
+.fn-root .react-flow__node-section .react-flow__resize-control.line.left,
+.fn-root .react-flow__node-section .react-flow__resize-control.line.right {
+  width: 12px;
+  transform: translateX(-50%);
+}
+.fn-root .react-flow__node-section .react-flow__resize-control.line.top,
+.fn-root .react-flow__node-section .react-flow__resize-control.line.bottom {
+  height: 12px;
+  transform: translateY(-50%);
+}
+.fn-section {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border-radius: 18px;
+  border: 1.5px solid color-mix(in srgb, var(--fn-sec) 45%, transparent);
+  background: color-mix(in srgb, var(--fn-sec) 5%, transparent);
+}
+.fn-section.is-selected {
+  border-color: var(--fn-sec);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fn-sec) 22%, transparent);
+}
+/* faixa do topo inteira serve de alça para arrastar a seção */
+.fn-section-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border-radius: 18px 18px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: grab;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--fn-sec);
+}
+.fn-section-kicker {
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.fn-section-title {
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 20px;
+}
+.fn-section-title.is-empty {
+  opacity: 0.5;
+}
+.fn-section-head .fn-edit {
+  width: 220px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  color: var(--fn-text);
+}
+/* cadeado da seção */
+.fn-root .fn-section-lock {
+  all: unset;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--fn-sec);
+  cursor: pointer;
+  pointer-events: all;
+  opacity: 0;
+  transition:
+    opacity 160ms var(--fn-ease-out, ease-out),
+    background-color 140ms var(--fn-ease-out, ease-out),
+    transform 160ms var(--fn-ease-out, ease-out);
+}
+.fn-root .fn-section-head:hover .fn-section-lock,
+.fn-root .fn-section.is-selected .fn-section-lock,
+.fn-root .fn-section.is-locked .fn-section-lock {
+  opacity: 1;
+}
+.fn-root .fn-section-lock:hover {
+  background: color-mix(in srgb, var(--fn-sec) 20%, transparent);
+}
+.fn-root .fn-section-lock:active {
+  transform: scale(0.9);
+}
+/* travada: título e corpo deixam o clique passar para o canvas (caixa de seleção,
+   elementos de cima); só o cadeado continua clicável */
+.fn-root .react-flow__node-section .fn-section.is-locked .fn-section-head {
+  pointer-events: none;
+  cursor: default;
+}
+.fn-root .fn-section.is-locked .fn-section-lock {
+  background: color-mix(in srgb, var(--fn-sec) 14%, transparent);
+}
+
+.fn-section-total {
+  margin-left: auto;
+  font-size: 12px;
+  letter-spacing: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--fn-sec);
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- desenho */
+
+.fn-drawing {
+  position: relative;
+}
+.fn-drawing.is-selected {
+  outline: 1px dashed var(--fn-sel);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.fn-pen-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  cursor: crosshair;
+  touch-action: none;
+}
+.fn-pen-live {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------- barra lateral */
+
+.fn-palette {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  bottom: 14px;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+.fn-palette > * {
+  pointer-events: all;
+}
+.fn-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--fn-panel);
+  border: 1px solid var(--fn-border);
+  box-shadow: var(--fn-shadow);
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.fn-root .fn-tb-btn {
+  all: unset;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fn-muted);
+  cursor: pointer;
+  flex: none;
+}
+.fn-root .fn-tb-btn:hover {
+  background: var(--fn-hover);
+  color: var(--fn-text);
+}
+.fn-root .fn-tb-btn.is-on {
+  background: var(--fn-accent);
+  color: var(--fn-on-accent);
+}
+.fn-root .fn-tb-btn.is-tool-blue:not(.is-on) {
+  color: #6366f1;
+}
+.fn-root .fn-tb-btn.is-tool-orange:not(.is-on) {
+  color: #f59e0b;
+}
+.fn-tb-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--fn-border);
+  flex: none;
+}
+.fn-toolbar.is-wide {
+  width: 240px;
+  box-sizing: border-box;
+}
+.fn-root .fn-toolbar.is-wide .fn-tb-btn {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 9px;
+}
+.fn-tb-label {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fn-pal-panel {
+  width: 470px;
+  max-width: calc(100vw - 120px);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: var(--fn-panel);
+  border: 1px solid var(--fn-border);
+  box-shadow: var(--fn-shadow-lg);
+  user-select: none;
+}
+.fn-pal-panel.is-small {
+  width: 340px;
+}
+.fn-pal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fn-text);
+}
+.fn-root .fn-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--fn-border);
+  background: color-mix(in srgb, var(--fn-text) 3%, transparent);
+  color: var(--fn-muted);
+  flex: none;
+}
+.fn-root .fn-search:focus-within {
+  border-color: var(--fn-accent);
+}
+.fn-root .fn-search input {
+  all: unset;
+  flex: 1;
+  font-size: 13px;
+  color: var(--fn-text);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.fn-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fn-root .fn-chip {
+  all: unset;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--fn-text) 7%, transparent);
+  color: var(--fn-muted);
+}
+.fn-root .fn-chip:hover {
+  color: var(--fn-text);
+}
+.fn-root .fn-chip.is-on {
+  background: var(--fn-accent);
+  color: var(--fn-on-accent);
+}
+.fn-pal-scroll {
+  overflow-y: auto;
+  min-height: 0;
+  margin: 0 -6px;
+  padding: 0 6px 4px;
+  border-top: 1px solid var(--fn-border);
+  padding-top: 10px;
+}
+.fn-pal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px 6px;
+}
+.fn-pal-grid.is-pages {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.fn-root .fn-pal-item {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  cursor: grab;
+  text-align: center;
+}
+.fn-root .fn-pal-item:hover {
+  background: var(--fn-hover);
+}
+.fn-root .fn-pal-item:active {
+  cursor: grabbing;
+}
+.fn-pal-label {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--fn-muted);
+  word-break: break-word;
+}
+.fn-pal-disc {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+}
+.fn-pal-disc.is-light {
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.12),
+    0 1px 3px rgba(15, 23, 42, 0.12);
+}
+.fn-pal-page {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0 0 9px;
+  border-radius: 8px;
+  border: 1px solid var(--fn-card-border);
+  background: var(--fn-card);
+  overflow: hidden;
+}
+.fn-pal-page-dots {
+  align-self: stretch;
+  display: flex;
+  gap: 3px;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--fn-card-border);
+}
+.fn-pal-page-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  display: block;
+}
+.fn-pal-page-hero {
+  width: 82%;
+  height: 34px;
+  border-radius: 5px;
+  background: var(--fn-sk);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fn-pal-page-line {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--fn-sk);
+}
+.fn-pal-page-btn {
+  width: 82%;
+  height: 7px;
+  border-radius: 3px;
+}
+.fn-pal-section + .fn-pal-section {
+  margin-top: 12px;
+}
+.fn-pal-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fn-faint);
+  margin: 0 4px 6px;
+}
+.fn-pal-empty,
+.fn-pal-hint {
+  font-size: 12px;
+  color: var(--fn-muted);
+  padding: 10px 4px;
+  line-height: 1.45;
+}
+.fn-shape-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.fn-shape-grid .fn-pal-label {
+  font-size: 10.5px;
+  word-break: normal;
+}
+.fn-shape-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fn-text);
+  background: color-mix(in srgb, var(--fn-text) 6%, transparent);
+}
+.fn-parallelogram {
+  width: 20px;
+  height: 13px;
+  border: 2px solid currentColor;
+  border-radius: 2px;
+  transform: skewX(-18deg);
+}
+.fn-pen-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.fn-root .fn-pen-size {
+  all: unset;
+  width: 34px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--fn-text) 6%, transparent);
+}
+.fn-root .fn-pen-size span {
+  border-radius: 50%;
+  background: var(--fn-text);
+}
+.fn-root .fn-pen-size.is-on {
+  outline: 2px solid var(--fn-accent);
+}
+
+/* --------------------------------------------------------------- inspetor */
+
+/* casca fixa do painel: posiciona e anima; o painel dentro troca de conteúdo */
+.fn-insp-shell {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 11;
+  display: flex;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.fn-inspector {
+  position: relative;
+  pointer-events: all;
+  width: 290px;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background: var(--fn-panel);
+  border: 1px solid var(--fn-border);
+  box-shadow: var(--fn-shadow-lg);
+  user-select: none;
+}
+.fn-insp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--fn-border);
+  font-size: 13px;
+  font-weight: 700;
+}
+.fn-insp-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.fn-insp-foot {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--fn-border);
+}
+.fn-insp-foot .fn-btn {
+  flex: 1;
+}
+.fn-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.fn-field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fn-muted);
+}
+.fn-field-row:has(> .fn-field-label + :empty) {
+  gap: 0;
+}
+.fn-root .fn-input {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--fn-border);
+  background: color-mix(in srgb, var(--fn-text) 3%, transparent);
+  color: var(--fn-text);
+  font-size: 13px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.fn-root select.fn-input {
+  appearance: auto;
+  cursor: pointer;
+}
+.fn-root .fn-input:focus {
+  border-color: var(--fn-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fn-accent) 18%, transparent);
+}
+.fn-root .fn-textarea {
+  height: auto;
+  padding: 8px 10px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  resize: vertical;
+  min-height: 64px;
+}
+.fn-money {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--fn-border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--fn-text) 3%, transparent);
+}
+.fn-money:focus-within {
+  border-color: var(--fn-accent);
+}
+.fn-root .fn-currency {
+  all: unset;
+  appearance: auto;
+  padding: 0 6px 0 10px;
+  border-right: 1px solid var(--fn-border);
+  font-size: 13px;
+  color: var(--fn-text);
+  cursor: pointer;
+}
+.fn-root .fn-currency option,
+.fn-root select.fn-input option {
+  background: var(--background-primary, #fff);
+  color: var(--fn-text);
+}
+.fn-root .fn-money .fn-price-input {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.fn-seg {
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--fn-text) 7%, transparent);
+}
+.fn-root .fn-seg button {
+  all: unset;
+  flex: 1;
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fn-muted);
+  cursor: pointer;
+}
+.fn-root .fn-seg button.is-on {
+  background: var(--fn-panel);
+  color: var(--fn-accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.fn-root .fn-toggle {
+  all: unset;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fn-text) 20%, transparent);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex: none;
+}
+.fn-root .fn-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+.fn-root .fn-toggle.is-on {
+  background: var(--fn-accent);
+}
+.fn-root .fn-toggle.is-on::after {
+  transform: translateX(16px);
+}
+.fn-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fn-root .fn-swatch {
+  all: unset;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+.fn-root .fn-swatch.is-on {
+  outline: 2px solid var(--fn-accent);
+  outline-offset: 2px;
+}
+.fn-root .fn-swatch.is-none {
+  background:
+    linear-gradient(135deg, transparent 45%, #ef4444 45%, #ef4444 55%, transparent 55%),
+    var(--fn-panel);
+  box-shadow: inset 0 0 0 1px var(--fn-border);
+}
+.fn-root .fn-swatch.is-custom {
+  background: conic-gradient(#ef4444, #f59e0b, #22c55e, #3b82f6, #a855f7, #ef4444);
+  overflow: hidden;
+}
+.fn-root .fn-swatch.is-custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.fn-note-link {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.fn-root .fn-note-chip {
+  all: unset;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--fn-accent) 12%, transparent);
+  color: var(--fn-accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fn-root .fn-note-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fn-root .fn-note-chip.is-missing {
+  opacity: 0.6;
+  text-decoration: line-through dotted;
+}
+
+.fn-root .fn-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fn-text);
+  border: 1px solid var(--fn-border);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fn-root .fn-btn:hover {
+  background: var(--fn-hover);
+}
+.fn-root .fn-btn.is-danger {
+  color: #ef4444;
+  border-color: color-mix(in srgb, #ef4444 40%, transparent);
+}
+.fn-root .fn-btn.is-danger:hover {
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+}
+.fn-root .fn-btn.is-primary {
+  background: var(--fn-accent);
+  border-color: var(--fn-accent);
+  color: var(--fn-on-accent);
+}
+.fn-root .fn-icon-btn {
+  all: unset;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fn-muted);
+  cursor: pointer;
+  flex: none;
+}
+.fn-root .fn-icon-btn.is-tiny {
+  width: 20px;
+  height: 20px;
+}
+.fn-root .fn-icon-btn:hover:not(:disabled) {
+  background: var(--fn-hover);
+  color: var(--fn-text);
+}
+.fn-root .fn-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* --------------------------------------------------------------- controles e total */
+
+.fn-controls {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--fn-panel);
+  border: 1px solid var(--fn-border);
+  box-shadow: var(--fn-shadow);
+}
+.fn-ctl-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--fn-border);
+}
+.fn-root .fn-zoom {
+  all: unset;
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fn-muted);
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.fn-total {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px 7px 14px;
+  border-radius: 999px;
+  background: var(--fn-panel);
+  border: 1px solid var(--fn-border);
+  box-shadow: var(--fn-shadow);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fn-muted);
+  white-space: nowrap;
+}
+.fn-total strong {
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+}
+
+/* --------------------------------------------------------------- busca rápida */
+
+.fn-quick {
+  position: absolute;
+  z-index: 20;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--fn-panel);
+  border: 1px solid var(--fn-border);
+  box-shadow: var(--fn-shadow-lg);
+  transform: translate(10px, -20px);
+}
+.fn-quick-list {
+  position: relative;
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.fn-root .fn-quick-item {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.fn-root .fn-quick-item.is-active {
+  background: var(--fn-hover);
+}
+.fn-quick-icon {
+  width: 26px;
+  display: flex;
+  justify-content: center;
+  flex: none;
+}
+.fn-quick-icon .fn-pal-page {
+  width: 24px;
+  padding-bottom: 3px;
+  gap: 2px;
+  border-radius: 4px;
+}
+.fn-quick-icon .fn-pal-page-dots {
+  padding: 2px 3px;
+}
+.fn-quick-icon .fn-pal-page-dots i {
+  width: 2px;
+  height: 2px;
+}
+.fn-quick-icon .fn-pal-page-hero {
+  height: 9px;
+}
+.fn-quick-icon .fn-pal-page-hero svg,
+.fn-quick-icon .fn-pal-page-line {
+  display: none;
+}
+.fn-quick-icon .fn-pal-page-btn {
+  height: 3px;
+}
+.fn-quick-label {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--fn-text);
+}
+.fn-quick-group {
+  font-size: 10.5px;
+  color: var(--fn-faint);
+}
+
+/* --------------------------------------------------------------- vazio / erro */
+
+.fn-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 4;
+}
+.fn-empty-card {
+  pointer-events: all;
+  max-width: 380px;
+  text-align: center;
+  padding: 22px 26px;
+  border-radius: 16px;
+  background: var(--fn-panel);
+  border: 1px solid var(--fn-border);
+  box-shadow: var(--fn-shadow);
+  user-select: text;
+}
+.fn-empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.fn-empty-card p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fn-muted);
+}
+.fn-empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.fn-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fn-error code {
+  display: block;
+  font-size: 11px;
+  color: #ef4444;
+  word-break: break-word;
+}
+
+/* --------------------------------------------------------------- menu de botão direito */
+
+.fn-menu {
+  position: absolute;
+  z-index: 30;
+  min-width: 200px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--fn-panel);
+  border: 1px solid var(--fn-border);
+  box-shadow: var(--fn-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+.fn-root .fn-menu-item {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--fn-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.fn-root .fn-menu-item:hover:not(:disabled) {
+  background: var(--fn-hover);
+}
+.fn-root .fn-menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.fn-root .fn-menu-item.is-danger {
+  color: #ef4444;
+}
+.fn-menu-icon {
+  width: 16px;
+  display: flex;
+  justify-content: center;
+  color: var(--fn-muted);
+  flex: none;
+}
+.fn-menu-item.is-danger .fn-menu-icon {
+  color: inherit;
+}
+.fn-menu-label {
+  flex: 1;
+}
+.fn-menu-hint {
+  font-size: 11px;
+  color: var(--fn-faint);
+  margin-left: 16px;
+}
+.fn-menu-sep {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--fn-border);
+}
+
+/* --------------------------------------------------------------- arquivo do cofre */
+
+.fn-file {
+  position: relative;
+  width: 220px;
+  min-height: 64px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--fn-card);
+  border: 1px solid var(--fn-card-border);
+  box-shadow: var(--fn-shadow);
+}
+.fn-file.is-selected {
+  box-shadow:
+    0 0 0 2px var(--fn-sel),
+    var(--fn-shadow);
+}
+.fn-file.is-missing {
+  opacity: 0.6;
+}
+.fn-file-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--fn-accent);
+  background: color-mix(in srgb, var(--fn-accent) 14%, transparent);
+}
+.fn-file-text {
+  flex: 1;
+  min-width: 0;
+}
+.fn-file-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fn-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fn-file-path {
+  font-size: 10.5px;
+  color: var(--fn-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+.fn-root .fn-file-open {
+  position: static;
+  flex: none;
+}
+.fn-file.is-image {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+}
+.fn-file-img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  border-radius: 7px;
+  display: block;
+  pointer-events: none;
+}
+.fn-file-img.is-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fn-faint);
+  background: var(--fn-sk);
+}
+.fn-file-caption {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--fn-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: none;
+}
+
+/* --------------------------------------------------------------- galeria */
+
+.workspace-leaf-content[data-type='funis-gallery'] .view-content {
+  padding: 0;
+}
+.fn-gallery {
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 28px 32px 48px;
+  color: var(--fn-text);
+  font-family: var(--fn-font);
+  background: var(--fn-bg);
+}
+.fn-gal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.fn-gal-tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.fn-gallery .fn-gal-search {
+  width: 240px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--fn-border);
+  background: color-mix(in srgb, var(--fn-text) 3%, transparent);
+  color: var(--fn-text);
+  font-size: 13px;
+}
+.fn-gallery .fn-gal-btn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid var(--fn-border);
+  background: transparent;
+  color: var(--fn-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+}
+.fn-gallery .fn-gal-btn:hover {
+  background: var(--fn-hover);
+}
+.fn-gallery .fn-gal-btn.is-primary {
+  background: var(--fn-accent);
+  border-color: var(--fn-accent);
+  color: var(--fn-on-accent);
+}
+.fn-gal-outside {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+}
+.fn-gal-outside span {
+  flex: 1;
+}
+.fn-gal-outside.is-hidden,
+.fn-gal-empty.is-hidden {
+  display: none;
+}
+.fn-gal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+.fn-gal-card {
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--fn-panel);
+  border: 1px solid var(--fn-border);
+  box-shadow: var(--fn-shadow);
+  cursor: pointer;
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s,
+    border-color 0.12s;
+  outline: none;
+}
+.fn-gal-card:hover,
+.fn-gal-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--fn-accent) 55%, var(--fn-border));
+  box-shadow: var(--fn-shadow-lg);
+}
+.fn-gal-thumb {
+  aspect-ratio: 16 / 9;
+  background: var(--fn-bg);
+  background-image: radial-gradient(circle, var(--fn-dot) 1px, transparent 1.2px);
+  background-size: 14px 14px;
+  border-bottom: 1px solid var(--fn-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fn-gal-thumb svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.fn-thumb .t-edge {
+  fill: none;
+  stroke: var(--fn-edge);
+}
+.fn-thumb .t-card {
+  fill: var(--fn-card);
+  stroke: var(--fn-card-border);
+}
+.fn-thumb .t-sk,
+.fn-thumb .t-label {
+  fill: var(--fn-sk);
+}
+.fn-thumb .t-light {
+  stroke: var(--fn-card-border);
+  stroke-width: 2;
+}
+.fn-thumb .t-decision {
+  fill: var(--fn-card);
+  stroke: var(--fn-muted);
+}
+.fn-thumb .t-shape {
+  fill: var(--fn-shape-fill);
+  stroke: var(--fn-shape-stroke);
+}
+.fn-thumb .t-ink {
+  fill: none;
+  stroke: var(--fn-ink);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.fn-thumb .t-empty {
+  fill: var(--fn-faint);
+  font-size: 13px;
+  font-family: var(--fn-font);
+}
+.fn-gal-broken {
+  font-size: 12px;
+  color: var(--fn-faint);
+}
+.fn-gal-info {
+  padding: 11px 14px 13px;
+}
+.fn-gal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fn-gal-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fn-gallery .fn-gal-more {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--fn-muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  flex: none;
+}
+.fn-gallery .fn-gal-more:hover {
+  background: var(--fn-hover);
+  color: var(--fn-text);
+}
+.fn-gal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--fn-muted);
+}
+.fn-gal-dot {
+  color: var(--fn-faint);
+}
+.fn-gal-badge {
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+}
+.theme-dark .fn-gal-badge {
+  color: #fbbf24;
+}
+.fn-gal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--fn-muted);
+  font-size: 13.5px;
+}
+.fn-gal-empty-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--fn-text);
+}
+
+/* --------------------------------------------------------------- produto / bundle */
+
+.fn-product {
+  position: relative;
+  width: 230px;
+  box-sizing: border-box;
+  border-radius: 14px;
+  background: var(--fn-card);
+  border: 1px solid var(--fn-card-border);
+  border-left: 4px solid var(--fn-prod);
+  box-shadow: var(--fn-shadow);
+}
+.fn-product.is-bundle {
+  background: color-mix(in srgb, var(--fn-prod) 7%, var(--fn-card));
+  border-color: color-mix(in srgb, var(--fn-prod) 45%, transparent);
+  border-left-color: var(--fn-prod);
+}
+.fn-product.is-selected {
+  box-shadow:
+    0 0 0 2px var(--fn-sel),
+    var(--fn-shadow);
+}
+.fn-product-head {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 12px 12px 12px 11px;
+}
+.fn-product-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+}
+.fn-product-text {
+  min-width: 0;
+  flex: 1;
+}
+.fn-product-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fn-prod);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fn-product-name {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--fn-text);
+  margin-top: 2px;
+  word-break: break-word;
+}
+.fn-product-name.is-empty {
+  color: var(--fn-faint);
+  font-style: italic;
+  font-weight: 500;
+}
+.fn-product-price {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--fn-text);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fn-product-price s {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fn-faint);
+}
+.fn-product-price small {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fn-muted);
+  margin-left: -4px;
+}
+.fn-product-items {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px 11px 13px;
+  border-top: 1px dashed color-mix(in srgb, var(--fn-prod) 40%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fn-product-items li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--fn-text);
+  line-height: 1.3;
+}
+.fn-product-items li svg {
+  color: var(--fn-prod);
+  flex: none;
+}
+.fn-product-items li.is-extra {
+  color: var(--fn-muted);
+}
+.fn-product-items li.is-empty {
+  color: var(--fn-faint);
+  font-style: italic;
+}
+.fn-pal-disc.is-square {
+  border-radius: 12px;
+}
+
+/* painel: itens do bundle */
+.fn-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: 9px;
+  border: 1px solid var(--fn-border);
+}
+.fn-root .fn-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--fn-text);
+}
+.fn-root .fn-check:hover {
+  background: var(--fn-hover);
+}
+.fn-root .fn-check input {
+  margin: 0;
+  accent-color: var(--fn-accent);
+  cursor: pointer;
+}
+.fn-check-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fn-check-price {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--fn-muted);
+}
+.fn-extra-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 8px;
+  font-size: 12.5px;
+  color: var(--fn-text);
+}
+.fn-extra-row span {
+  flex: 1;
+  min-width: 0;
+}
+.fn-extra-row svg {
+  color: var(--fn-muted);
+}
+.fn-extra-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.fn-hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--fn-muted);
+}
+.fn-hint strong {
+  color: var(--fn-text);
+}
+.fn-field-aside {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fn-faint);
+}
+
+/* --------------------------------------------------------------- galeria: seção de modelos */
+
+.fn-gal-section {
+  margin-bottom: 26px;
+}
+.fn-gal-section.is-hidden,
+.fn-gal-section-head.is-hidden {
+  display: none;
+}
+.fn-gal-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.fn-gal-section-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fn-text);
+}
+/* cabeçalho que abre/fecha a seção (setinha ao lado do título) */
+.fn-gallery .fn-gal-section-head.is-toggle {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px -6px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.fn-gallery .fn-gal-section-head.is-toggle:hover {
+  background: var(--fn-hover);
+}
+.fn-gallery .fn-gal-section-head.is-toggle:focus-visible {
+  outline: 2px solid var(--fn-accent);
+  outline-offset: 1px;
+}
+.fn-gal-chevron {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: var(--fn-muted);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.15s;
+}
+.fn-gal-section.is-collapsed .fn-gal-chevron {
+  transform: rotate(-90deg); /* fechado: aponta para o lado */
+}
+.fn-gal-section.is-collapsed .fn-gal-section-head.is-toggle {
+  margin-bottom: 4px;
+}
+.fn-gal-section-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  min-width: 18px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  text-align: center;
+  color: var(--fn-muted);
+  background: color-mix(in srgb, var(--fn-text) 8%, transparent);
+}
+.fn-gal-grid.is-templates {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.fn-gal-card.is-template {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--fn-accent) 45%, var(--fn-border));
+}
+.fn-gal-badge.is-template {
+  color: var(--fn-accent);
+  background: color-mix(in srgb, var(--fn-accent) 14%, transparent);
+}
+.theme-dark .fn-gal-badge.is-template {
+  color: var(--fn-accent);
+}
+
+/* --------------------------------------------------------------- ligar blocos (conexão) */
+
+/* a linha que segue o mouse ganha camada própria: mover o mouse só repinta a linha, não o funil inteiro */
+.fn-root .react-flow__connectionline {
+  will-change: transform;
+  pointer-events: none;
+}
+/* área de pegar a bolinha maior que o desenho dela (mais fácil começar a ligar) */
+.fn-root .react-flow__handle.fn-h::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
+/* enquanto liga, nada de efeitos de hover nas outras conexões */
+.fn-root .react-flow__pane.connecting ~ * .react-flow__edge,
+.fn-root .react-flow:has(.react-flow__connectionline) .react-flow__edge {
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------- arrastar da barra para o canvas */
+
+.fn-root .fn-pal-item,
+.fn-root .fn-tb-btn.is-draggable {
+  touch-action: none; /* no touch, segurar e arrastar não rola o painel */
+}
+.fn-drag-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  pointer-events: none;
+  will-change: transform;
+}
+.fn-drag-ghost-inner {
+  transform: translate(-50%, -50%) rotate(-2deg) scale(1.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.92;
+  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.35));
+  transition: opacity 0.12s;
+}
+.fn-drag-ghost-inner.is-page .fn-pal-page {
+  width: 120px;
+}
+.fn-drag-ghost.is-blocked .fn-drag-ghost-inner {
+  opacity: 0.4;
+}
+.fn-drag-ghost-label {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fn-panel);
+  color: var(--fn-text);
+  border: 1px solid var(--fn-border);
+  white-space: nowrap;
+}
+.fn-root.is-dragging-item,
+.fn-root.is-dragging-item * {
+  cursor: grabbing !important;
+}
+/* ao sair do painel ele fica quase transparente: dá para ver e soltar no canvas por baixo */
+.fn-root .fn-pal-panel {
+  transition: opacity 0.15s;
+}
+.fn-root.is-dragging-out .fn-pal-panel,
+.fn-root.is-dragging-out .fn-inspector {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------- modais do plugin */
+
+.fn-modal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.fn-modal-row label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.fn-modal-row input,
+.fn-modal-row select {
+  width: 100%;
+}
+.fn-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* =============================================================== movimento
+   Padrão Apple: só transform/opacity nas animações (GPU), entrada com
+   desaceleração longa, saída curta, leve "mola" no que nasce, e nada de
+   animação quando o sistema pede "reduzir movimento". */
+
+@keyframes fn-in-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-12px, 0, 0) scale(0.985);
+  }
+}
+@keyframes fn-out-left {
+  to {
+    opacity: 0;
+    transform: translate3d(-10px, 0, 0) scale(0.985);
+  }
+}
+@keyframes fn-in-right {
+  from {
+    opacity: 0;
+    transform: translate3d(14px, 0, 0) scale(0.985);
+  }
+}
+@keyframes fn-out-right {
+  to {
+    opacity: 0;
+    transform: translate3d(12px, 0, 0) scale(0.985);
+  }
+}
+@keyframes fn-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+@keyframes fn-pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes fn-node-in {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+}
+@keyframes fn-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fn-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.99);
+  }
+}
+@keyframes fn-quick-in {
+  from {
+    opacity: 0;
+    transform: translate(10px, -20px) scale(0.94);
+  }
+  to {
+    transform: translate(10px, -20px);
+  }
+}
+@keyframes fn-total-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* painel da barra lateral: entra deslizando da esquerda, sai mais rápido */
+.fn-palette > .fn-pal-slot {
+  pointer-events: none;
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  min-height: 0;
+}
+.fn-pal-slot > .fn-pal-panel {
+  pointer-events: all;
+  animation: fn-in-left var(--fn-dur) var(--fn-ease-out) backwards;
+  transform-origin: left top;
+}
+.fn-pal-slot.is-leaving > .fn-pal-panel {
+  animation: fn-out-left 160ms var(--fn-ease-in) forwards;
+  pointer-events: none;
+}
+
+/* painel de propriedades: a casca anima (trocar de elemento não replay) */
+.fn-insp-shell {
+  animation: fn-in-right var(--fn-dur) var(--fn-ease-out) backwards;
+  transform-origin: right top;
+}
+.fn-insp-shell.is-leaving {
+  animation: fn-out-right 160ms var(--fn-ease-in) forwards;
+}
+.fn-insp-shell.is-leaving > .fn-inspector {
+  pointer-events: none;
+}
+
+/* menus e busca rápida: "pop" a partir do ponto clicado */
+.fn-menu {
+  animation: fn-pop var(--fn-dur-fast) var(--fn-ease-out) backwards;
+  transform-origin: top left;
+}
+.fn-menu.is-leaving {
+  animation: fn-pop-out 110ms ease-in forwards;
+  pointer-events: none;
+}
+.fn-quick {
+  animation: fn-quick-in 180ms var(--fn-ease-out) backwards;
+  transform-origin: top left;
+}
+.fn-drag-ghost-inner {
+  animation: fn-fade-in 120ms ease-out backwards;
+}
+.fn-empty-card {
+  animation: fn-rise var(--fn-dur-slow) var(--fn-ease-out) backwards;
+}
+.fn-total {
+  animation: fn-total-in var(--fn-dur) var(--fn-ease-out) backwards;
+}
+
+/* o que acabou de nascer no canvas cresce com uma molinha */
+.fn-root .react-flow__node.fn-enter > * {
+  animation: fn-node-in var(--fn-dur-slow) var(--fn-ease-spring) backwards;
+}
+.fn-root .react-flow__edge.fn-enter .fn-edge {
+  animation: fn-fade-in 280ms ease-out backwards;
+}
+
+/* micro-interações: hover suave e "afundar" ao apertar */
+.fn-root .fn-tb-btn,
+.fn-root .fn-icon-btn,
+.fn-root .fn-btn,
+.fn-root .fn-chip,
+.fn-root .fn-menu-item,
+.fn-root .fn-pal-item,
+.fn-root .fn-seg button,
+.fn-root .fn-quick-item,
+.fn-root .fn-zoom,
+.fn-root .fn-swatch,
+.fn-root .fn-badge {
+  transition:
+    background-color var(--fn-dur-fast) var(--fn-ease-out),
+    color var(--fn-dur-fast) var(--fn-ease-out),
+    box-shadow var(--fn-dur-fast) var(--fn-ease-out),
+    outline-color var(--fn-dur-fast) var(--fn-ease-out),
+    transform 180ms var(--fn-ease-out);
+}
+.fn-root .fn-tb-btn:active,
+.fn-root .fn-icon-btn:active:not(:disabled),
+.fn-root .fn-btn:active,
+.fn-root .fn-chip:active,
+.fn-root .fn-pal-item:active,
+.fn-root .fn-swatch:active,
+.fn-root .fn-zoom:active {
+  transform: scale(0.94);
+  transition-duration: 70ms;
+}
+.fn-root .fn-toggle {
+  transition: background-color 220ms var(--fn-ease-out);
+}
+.fn-root .fn-toggle::after {
+  transition: transform 300ms var(--fn-ease-spring);
+}
+.fn-root .react-flow__handle.fn-h {
+  transition:
+    opacity 180ms var(--fn-ease-out),
+    background-color 120ms var(--fn-ease-out);
+}
+
+/* anel de seleção acende suave */
+.fn-page,
+.fn-bump,
+.fn-note,
+.fn-product,
+.fn-file,
+.fn-section,
+.fn-dnode-disc,
+.fn-cnode-disc {
+  transition:
+    box-shadow 200ms var(--fn-ease-out),
+    border-color 200ms var(--fn-ease-out);
+}
+
+/* --------------------------------------------------------------- galeria */
+
+.fn-gal-card {
+  transition:
+    transform 280ms var(--fn-ease-out),
+    box-shadow 280ms var(--fn-ease-out),
+    border-color 200ms var(--fn-ease-out);
+}
+.fn-gal-card:active {
+  transform: scale(0.985);
+  transition-duration: 90ms;
+}
+/* cartões entram em cascata só na primeira vez que a galeria abre */
+.fn-gallery.is-entering .fn-gal-card {
+  animation: fn-rise 440ms var(--fn-ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+.fn-gal-chevron {
+  transition: transform 300ms var(--fn-ease-spring);
+}
+/* abrir/fechar seção: a altura desliza (grid 1fr ↔ 0fr) */
+.fn-gal-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows var(--fn-dur-slow) var(--fn-ease-out),
+    opacity var(--fn-dur) var(--fn-ease-out);
+}
+.fn-gal-section.is-collapsed .fn-gal-collapse {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.fn-gal-collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+  /* folga para a sombra/elevação dos cartões não ser cortada */
+  padding: 6px 8px 16px;
+  margin: -6px -8px -16px;
+}
+.fn-gal-section.is-collapsed .fn-gal-collapse-inner {
+  visibility: hidden;
+  transition: visibility 0s linear var(--fn-dur-slow);
+}
+
+/* quem pede menos movimento no sistema não recebe animação */
+@media (prefers-reduced-motion: reduce) {
+  .fn-root *,
+  .fn-root *::before,
+  .fn-root *::after,
+  .fn-gallery *,
+  .fn-gallery *::before,
+  .fn-gallery *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+.fn-gal-card.is-skel {
+  cursor: default;
+  pointer-events: none;
+}
+.fn-gal-card.is-skel:hover,
+.fn-gal-card.is-skel:focus-visible {
+  transform: none;
+  border-color: var(--fn-border);
+  box-shadow: var(--fn-shadow);
+}
+.fn-gal-card.is-skel .fn-gal-info {
+  display: grid;
+  gap: 8px;
+}
+.fn-gal-card.is-skel .fn-skel-line {
+  margin-top: 0;
+}
+.fn-gal-folders.is-hidden {
+  display: none;
+}
+.fn-gal-thumb .fn-gal-folder-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--fn-accent);
+}
+.fn-gal-folder-menu {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--fn-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.fn-gal-folder-menu:hover,
+.fn-gal-folder-menu:focus-visible {
+  background: var(--fn-hover);
+  color: var(--fn-text);
+}
+.fn-gal-folder-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.fn-gal-folder-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fn-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.fn-gal-folder-back:hover,
+.fn-gal-folder-back:focus-visible {
+  background: var(--fn-hover);
+  color: var(--fn-text);
+}
+.fn-gal-folder-bar .fn-gal-folder-menu {
+  position: static;
+}

@@ -1,7 +1,7 @@
 /* Global styles - Theme, font, utilities, animations and global components */
 
 /* CHANGE THE FONT BELOW TO WHATEVER YOU WANT */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,7 +10,7 @@
 @layer base {
   :root {
     /* Change the colors to match the design system */
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -19,8 +19,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 84% 4.9%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 258 76% 58%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 98%;
     --secondary-foreground: 222.2 84% 4.9%;
@@ -36,7 +36,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 258 76% 58%;
 
     --radius: 0.5rem;
 
@@ -65,33 +65,33 @@
 
   .dark {
     /* Change the colors to match the design system consistent with the dark mode */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 7% 10%;
+    --foreground: 240 6% 90%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 5% 12%;
+    --card-foreground: 240 6% 90%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 5% 12%;
+    --popover-foreground: 240 6% 90%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 84% 4.9%;
+    --primary: 258 88% 66%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 222.2 84% 4.9%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 4% 18%;
+    --secondary-foreground: 240 6% 90%;
 
-    --muted: 222.2 84% 4.9%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 4% 18%;
+    --muted-foreground: 240 4% 65%;
 
-    --accent: 222.2 84% 4.9%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 4% 18%;
+    --accent-foreground: 240 6% 90%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 222.2 84% 4.9%;
-    --input: 222.2 84% 4.9%;
-    --ring: 214.3 31.8% 91.4%;
+    --border: 240 4% 20%;
+    --input: 240 4% 22%;
+    --ring: 258 88% 66%;
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 222.2 84% 4.9%;
@@ -106,6 +106,15 @@
     --chart-3: 43 100% 32%;
     --chart-4: 340 100% 50%;
     --chart-5: 10 100% 50%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
   }
 
   /* NEVER REMOVE THIS */
@@ -287,4 +296,110 @@
   .animate-spotlight {
     animation: spotlight 2s ease forwards;
   }
+}
+
+.fn-skel {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--muted, #d4d4d8) 55%, transparent);
+}
+.fn-skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, white 55%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: fn-skel 1.3s ease-in-out infinite;
+}
+@keyframes fn-skel {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fn-skel::after {
+    animation: none;
+  }
+}
+.fn-skel-page {
+  min-height: 100vh;
+  padding: 28px 24px;
+  background: var(--background);
+}
+.fn-skel-line {
+  display: block;
+  height: 14px;
+  border-radius: 7px;
+}
+.fn-skel-line.is-title {
+  width: 180px;
+  height: 22px;
+  margin-bottom: 22px;
+}
+.fn-skel-line.is-short {
+  width: 55%;
+}
+.fn-skel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+.fn-skel-card {
+  display: block;
+  height: 210px;
+  border-radius: 14px;
+}
+.fn-skel-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.fn-skel-node {
+  position: absolute;
+  width: 168px;
+  height: 72px;
+  border-radius: 12px;
+}
+.fn-skel-node:nth-child(1) {
+  top: 18%;
+  left: 12%;
+}
+.fn-skel-node:nth-child(2) {
+  top: 18%;
+  left: 42%;
+}
+.fn-skel-node:nth-child(3) {
+  top: 42%;
+  left: 28%;
+}
+.fn-skel-node:nth-child(4) {
+  top: 42%;
+  left: 58%;
+}
+.fn-skel-node:nth-child(5) {
+  top: 66%;
+  left: 18%;
+}
+.fn-skel-node:nth-child(6) {
+  top: 66%;
+  left: 48%;
+}
+.fn-skel-list {
+  display: grid;
+  gap: 14px;
+}
+.fn-skel-rows {
+  display: grid;
+  gap: 8px;
+}
+.fn-skel-row {
+  display: block;
+  height: 40px;
+  border-radius: 10px;
 }

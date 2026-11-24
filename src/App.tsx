@@ -1,28 +1,96 @@
 /* Main App Component - Handles routing (using react-router-dom), query client and other providers - use this file to add all routes */
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import Index from './pages/Index'
+import { DialogProvider } from '@/components/dialogs/DialogProvider'
+import ProtectedRoute from '@/components/ProtectedRoute'
+import { AuthProvider } from '@/hooks/use-auth'
+import { LoadingBlock } from '@/components/LoadingBlock'
+import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
 // AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
 
+const FunnelPage = lazy(() => import('./pages/FunnelPage'))
+const TeamPage = lazy(() => import('./pages/TeamPage'))
+const ViewPage = lazy(() => import('./pages/ViewPage'))
+const Index = lazy(() => import('./pages/Index'))
+const McpPage = lazy(() => import('./pages/McpPage'))
+
+const PageLoader = () => <LoadingBlock />
+
 const App = () => (
   <BrowserRouter>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES MUST BE ADDED HERE */}
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <DialogProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/v/:token"
+              element={
+                <Suspense fallback={<PageLoader />}>
+                  <ViewPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/f/:id"
+              element={
+                <ProtectedRoute>
+                  <Suspense fallback={<PageLoader />}>
+                    <FunnelPage />
+                  </Suspense>
+                </ProtectedRoute>
+              }
+            />
+            <Route element={<Layout />}>
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <Index />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/time"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <TeamPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/autorizacoes"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<PageLoader />}>
+                      <McpPage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </DialogProvider>
+      </TooltipProvider>
+    </AuthProvider>
   </BrowserRouter>
 )
 

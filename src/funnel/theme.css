@@ -1,0 +1,236 @@
+/* Variáveis que o Obsidian fornecia ao plugin (o resto do visual vem de styles.css). */
+
+body.theme-light {
+  --background-primary: #ffffff;
+  --text-normal: #1f2430;
+  --text-muted: #5f6675;
+  --text-faint: #9aa0ab;
+  --text-on-accent: #ffffff;
+  --interactive-accent: hsl(258, 76%, 58%);
+  --background-modifier-border: rgba(15, 23, 42, 0.1);
+  --background-modifier-hover: rgba(15, 23, 42, 0.05);
+  --font-interface:
+    'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f8fafc;
+  color-scheme: light;
+}
+
+body.theme-light .fn-root,
+body.theme-light .fn-gallery {
+  --fn-bg: #f8fafc;
+}
+
+body.theme-light .fn-gallery-page,
+body.theme-light .fn-editor-page,
+body.theme-light .fn-topbar {
+  background: #f8fafc;
+}
+
+body.theme-dark {
+  --background-primary: #17171a;
+  --text-normal: #e6e6ea;
+  --text-muted: #a2a2ab;
+  --text-faint: #6c6c75;
+  --text-on-accent: #ffffff;
+  --interactive-accent: hsl(258, 88%, 66%);
+  --background-modifier-border: rgba(255, 255, 255, 0.1);
+  --background-modifier-hover: rgba(255, 255, 255, 0.06);
+  --font-interface:
+    'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #17171a;
+  color-scheme: dark;
+}
+
+/* galeria ocupa a página inteira, com o cabeçalho num contêiner centralizado */
+.fn-gallery-page {
+  min-height: 100vh;
+  background: var(--background-primary);
+}
+.fn-gallery-page .fn-gallery {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+/* camada fixa para menus fora do canvas (cartões da galeria, barra do editor) */
+.fn-root.fn-menu-host {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
+  z-index: 60;
+  background: transparent;
+  pointer-events: none;
+  contain: none;
+}
+.fn-root.fn-menu-host .fn-menu {
+  pointer-events: auto;
+}
+
+/* barra do editor */
+.fn-editor-page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-primary);
+}
+.fn-editor-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.fn-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 10px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  font-size: 13px;
+}
+.fn-topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    background-color 140ms,
+    color 140ms;
+}
+.fn-topbar-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.fn-topbar-name {
+  min-width: 120px;
+  max-width: 420px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-normal);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  transition:
+    border-color 140ms,
+    background-color 140ms;
+}
+.fn-topbar-name:hover {
+  background: var(--background-modifier-hover);
+}
+.fn-topbar-name:focus {
+  border-color: var(--interactive-accent);
+  background: transparent;
+}
+.fn-topbar-status {
+  color: var(--text-faint);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.fn-topbar-status.is-error {
+  color: #ef4444;
+}
+.fn-topbar-spacer {
+  flex: 1;
+}
+.fn-theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+}
+.fn-theme-switch button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color 140ms,
+    color 140ms;
+}
+.fn-theme-switch button:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+.fn-theme-switch button.is-on {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.fn-topbar-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--interactive-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 14%, transparent);
+}
+
+.fn-topbar-btn.is-on {
+  background: color-mix(in srgb, #ff2a2a 18%, transparent);
+  color: #ff4d4d;
+}
+.fn-editor-page.is-presenting .fn-editor-canvas,
+.fn-editor-page.is-presenting .fn-editor-canvas * {
+  cursor: none !important;
+}
+.fn-laser-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+.fn-laser-trail {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.fn-laser-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: #ff2a2a;
+  box-shadow:
+    0 0 0 1px rgba(255, 42, 42, 0.55),
+    0 0 6px 1px rgba(255, 42, 42, 0.75);
+}
+.fn-laser-layer,
+.fn-laser-trail,
+.fn-laser-dot {
+  pointer-events: none !important;
+}
+.fn-editor-page.is-presenting .react-flow__node-section,
+.fn-editor-page.is-presenting .react-flow__node-section.selected,
+.fn-editor-page.is-presenting .fn-section-head,
+.fn-editor-page.is-presenting .fn-section-lock,
+.fn-editor-page.is-presenting .react-flow__resize-control {
+  pointer-events: none !important;
+}

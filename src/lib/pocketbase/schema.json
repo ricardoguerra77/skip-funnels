@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-24T17:22:27.521Z",
+  "generatedAt": "2026-11-24T17:23:20.933Z",
   "collections": [
     {
       "name": "users",
@@ -29,19 +29,531 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "funnels",
+      "type": "base",
+      "apiRules": {
+        "list": "((@request.auth.id != '' && owner = @request.auth.id) || (@request.auth.id != '' && visibility = 'team' && (editors ?= @request.auth.id || viewers ?= @request.auth.id)) || (visibility = 'public' && share_token != '' && share_token = @request.query.share) || (visibility = 'team' && share_token != '' && share_token = @request.query.share && @request.auth.id != '' && (owner = @request.auth.id || editors ?= @request.auth.id || viewers ?= @request.auth.id))) || (is_template = true && owner.email = 'modelos@funis.goskip.app' && @request.auth.id != '')",
+        "view": "((@request.auth.id != '' && owner = @request.auth.id) || (@request.auth.id != '' && visibility = 'team' && (editors ?= @request.auth.id || viewers ?= @request.auth.id)) || (visibility = 'public' && share_token != '' && share_token = @request.query.share) || (visibility = 'team' && share_token != '' && share_token = @request.query.share && @request.auth.id != '' && (owner = @request.auth.id || editors ?= @request.auth.id || viewers ?= @request.auth.id))) || (is_template = true && owner.email = 'modelos@funis.goskip.app' && @request.auth.id != '')",
+        "create": "@request.auth.id != '' && @request.body.owner = @request.auth.id",
+        "update": "@request.auth.id != '' && owner = @request.auth.id && (@request.body.owner = '' || @request.body.owner = @request.auth.id)",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_template",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        },
+        {
+          "name": "visibility",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "private",
+            "public",
+            "team"
+          ]
+        },
+        {
+          "name": "share_token",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "viewers",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "editors",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "folder",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "folders"
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_funnels_owner_updated ON funnels (owner, updated DESC)",
+        "CREATE UNIQUE INDEX `idx_funnels_share_token` ON `funnels` (share_token) WHERE share_token != ''",
+        "CREATE INDEX `idx_funnels_folder` ON `funnels` (folder)"
+      ]
+    },
+    {
+      "name": "notes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != '' && @request.body.owner = @request.auth.id",
+        "update": "@request.auth.id != '' && owner = @request.auth.id && (@request.body.owner = '' || @request.body.owner = @request.auth.id)",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "body",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_notes_owner_updated ON notes (owner, updated DESC)"
+      ]
+    },
+    {
+      "name": "assets",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != '' && @request.body.owner = @request.auth.id",
+        "update": "@request.auth.id != '' && owner = @request.auth.id && (@request.body.owner = '' || @request.body.owner = @request.auth.id)",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "file",
+          "type": "file",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_assets_owner ON assets (owner)"
+      ]
+    },
+    {
+      "name": "teams",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (owner = @request.auth.id || managers ?= @request.auth.id || members ?= @request.auth.id)",
+        "view": "@request.auth.id != '' && (owner = @request.auth.id || managers ?= @request.auth.id || members ?= @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.body.owner = @request.auth.id",
+        "update": "@request.auth.id != '' && owner = @request.auth.id && (@request.body.owner = '' || @request.body.owner = @request.auth.id)",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "members",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "managers",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "team_members",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (user = @request.auth.id || email = @request.auth.email || team.owner = @request.auth.id || team.managers ?= @request.auth.id || team.members ?= @request.auth.id)",
+        "view": "@request.auth.id != '' && (user = @request.auth.id || email = @request.auth.email || team.owner = @request.auth.id || team.managers ?= @request.auth.id || team.members ?= @request.auth.id)",
+        "create": "@request.auth.id != '' && @request.body.status = 'pending' && @request.body.user = '' && (team.owner = @request.auth.id || (team.managers ?= @request.auth.id && @request.body.role != 'admin'))",
+        "update": "@request.auth.id != '' && @request.body.team = team && @request.body.email = email && ((status = 'pending' && email = @request.auth.email && @request.body.user = @request.auth.id && @request.body.status = 'active' && @request.body.role = role) || (team.owner = @request.auth.id) || (team.managers ?= @request.auth.id && role != 'admin' && @request.body.role != 'admin' && @request.body.user = user))",
+        "delete": "@request.auth.id != '' && (team.owner = @request.auth.id || (team.managers ?= @request.auth.id && role != 'admin'))"
+      },
+      "fields": [
+        {
+          "name": "team",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "teams"
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "viewer",
+            "editor",
+            "admin"
+          ]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "pending",
+            "active"
+          ]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_team_members_team_email ON team_members (team, email)"
+      ]
+    },
+    {
+      "name": "funnel_bodies",
+      "type": "base",
+      "apiRules": {
+        "list": "((@request.auth.id != '' && funnel.owner = @request.auth.id) || (@request.auth.id != '' && funnel.visibility = 'team' && (funnel.editors ?= @request.auth.id || funnel.viewers ?= @request.auth.id)) || (funnel.visibility = 'public' && funnel.share_token != '' && funnel.share_token = @request.query.share) || (funnel.visibility = 'team' && funnel.share_token != '' && funnel.share_token = @request.query.share && @request.auth.id != '' && (funnel.owner = @request.auth.id || funnel.editors ?= @request.auth.id || funnel.viewers ?= @request.auth.id))) || (funnel.is_template = true && funnel.owner.email = 'modelos@funis.goskip.app' && @request.auth.id != '')",
+        "view": "((@request.auth.id != '' && funnel.owner = @request.auth.id) || (@request.auth.id != '' && funnel.visibility = 'team' && (funnel.editors ?= @request.auth.id || funnel.viewers ?= @request.auth.id)) || (funnel.visibility = 'public' && funnel.share_token != '' && funnel.share_token = @request.query.share) || (funnel.visibility = 'team' && funnel.share_token != '' && funnel.share_token = @request.query.share && @request.auth.id != '' && (funnel.owner = @request.auth.id || funnel.editors ?= @request.auth.id || funnel.viewers ?= @request.auth.id))) || (funnel.is_template = true && funnel.owner.email = 'modelos@funis.goskip.app' && @request.auth.id != '')",
+        "create": "@request.auth.id != '' && (funnel.owner = @request.auth.id || (funnel.visibility = 'team' && funnel.editors ?= @request.auth.id))",
+        "update": "@request.auth.id != '' && (funnel.owner = @request.auth.id || (funnel.visibility = 'team' && funnel.editors ?= @request.auth.id)) && @request.body.funnel = funnel",
+        "delete": "@request.auth.id != '' && funnel.owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "funnel",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "funnels"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_funnel_bodies_funnel ON funnel_bodies (funnel)"
+      ]
+    },
+    {
+      "name": "mcp_tokens",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": null,
+        "update": null,
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "token_prefix",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "last_used_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_mcp_tokens_hash ON mcp_tokens (token_hash)",
+        "CREATE INDEX idx_mcp_tokens_owner ON mcp_tokens (owner)"
+      ]
+    },
+    {
+      "name": "folders",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && owner = @request.auth.id",
+        "view": "@request.auth.id != '' && owner = @request.auth.id",
+        "create": "@request.auth.id != '' && @request.body.owner = @request.auth.id",
+        "update": "@request.auth.id != '' && owner = @request.auth.id && (@request.body.owner = '' || @request.body.owner = @request.auth.id)",
+        "delete": "@request.auth.id != '' && owner = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "owner",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_folders_owner_name ON folders (owner, name)"
       ]
     }
   ]
